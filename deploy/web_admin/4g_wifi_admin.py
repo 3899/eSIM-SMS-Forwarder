@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 from collections import deque
+from dataclasses import dataclass
 from functools import lru_cache
+import ipaddress
 import json
 import mimetypes
 import os
 import re
 import shlex
+import socket
 import subprocess
 import sys
 import threading
@@ -39,7 +42,10 @@ from notification_utils import (  # noqa: E402
 )
 
 
-HOST = os.environ.get("FOURG_WIFI_ADMIN_HOST", "0.0.0.0")
+AUTO_LISTEN_HOST = "auto"
+DEFAULT_IPV4_LISTEN_HOST = "0.0.0.0"
+DEFAULT_IPV6_LISTEN_HOST = "::"
+HOST = os.environ.get("FOURG_WIFI_ADMIN_HOST", AUTO_LISTEN_HOST)
 PORT = int(os.environ.get("FOURG_WIFI_ADMIN_PORT", "8080"))
 NOTIFICATION_CONFIG_PATH = Path("/etc/sms-forwarder.conf")
 SMS_FORWARDER_SERVICE = "sms-forwarder.service"
@@ -54,6 +60,17 @@ ACTION_MAX_EVENTS = 400
 KEEPALIVE_TASKS_KEY = "KEEPALIVE_TASKS_JSON"
 KEEPALIVE_SETTINGS_KEY = "KEEPALIVE_SETTINGS_JSON"
 KEEPALIVE_ACTION_NAME = "run_keepalive_task"
+
+
+@dataclass(frozen=True)
+class ServerListenConfig:
+    bind_host: str
+    address_family: int
+    dual_stack: bool
+    mode: str
+    explicit: bool
+
+
 KEEPALIVE_SCHEDULER_INTERVAL_SECONDS = 15
 KEEPALIVE_SCHEDULE_GRACE_SECONDS = 75
 KEEPALIVE_SWITCH_SETTLE_SECONDS = 20
@@ -277,6 +294,142 @@ def read_env_config(path: Path) -> dict[str, str]:
 def write_env_config(path: Path, config: dict[str, str]) -> None:
     lines = [f"{key}={value}" for key, value in config.items()]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def normalize_listen_host(raw_host: Optional[str]) -> str:
+    host = str(raw_host or "").strip()
+    if not host:
+        return AUTO_LISTEN_HOST
+    if host.startswith("[") and host.endswith("]"):
+        host = host[1:-1].strip()
+    if not host or host.lower() == AUTO_LISTEN_HOST:
+        return AUTO_LISTEN_HOST
+    return host
+
+
+def is_ipv6_host(host: str) -> bool:
+    normalized = normalize_listen_host(host)
+    if normalized == AUTO_LISTEN_HOST:
+        return False
+    try:
+        return ipaddress.ip_address(normalized).version == 6
+    except ValueError:
+        return ":" in normalized
+
+
+def resolve_listen_attempts(raw_host: Optional[str]) -> list[ServerListenConfig]:
+    normalized = normalize_listen_host(raw_host)
+    if normalized == AUTO_LISTEN_HOST:
+        attempts: list[ServerListenConfig] = []
+        if hasattr(socket, "AF_INET6"):
+            attempts.append(
+                ServerListenConfig(
+                    bind_host=DEFAULT_IPV6_LISTEN_HOST,
+                    address_family=socket.AF_INET6,
+                    dual_stack=True,
+                    mode="dual-stack",
+                    explicit=False,
+                )
+            )
+        attempts.append(
+            ServerListenConfig(
+                bind_host=DEFAULT_IPV4_LISTEN_HOST,
+                address_family=socket.AF_INET,
+                dual_stack=False,
+                mode="ipv4",
+                explicit=False,
+            )
+        )
+        return attempts
+
+    if is_ipv6_host(normalized):
+        return [
+            ServerListenConfig(
+                bind_host=normalized,
+                address_family=socket.AF_INET6,
+                dual_stack=normalized == DEFAULT_IPV6_LISTEN_HOST,
+                mode="dual-stack" if normalized == DEFAULT_IPV6_LISTEN_HOST else "ipv6",
+                explicit=True,
+            )
+        ]
+
+    return [
+        ServerListenConfig(
+            bind_host=normalized,
+            address_family=socket.AF_INET,
+            dual_stack=False,
+            mode="ipv4",
+            explicit=True,
+        )
+    ]
+
+
+def format_http_url(host: str, port: int) -> str:
+    normalized = normalize_listen_host(host)
+    if is_ipv6_host(normalized):
+        return f"http://[{normalized}]:{port}/"
+    return f"http://{normalized}:{port}/"
+
+
+def format_access_hints(config: ServerListenConfig, port: int) -> list[str]:
+    if config.mode == "dual-stack":
+        return [
+            f"IPv4 access: http://<device-ipv4>:{port}/",
+            f"IPv6 access: http://[<device-ipv6>]:{port}/",
+        ]
+    family_label = "IPv6" if config.address_family == socket.AF_INET6 else "IPv4"
+    return [f"{family_label} access: {format_http_url(config.bind_host, port)}"]
+
+
+class DualStackThreadingHTTPServer(ThreadingHTTPServer):
+    address_family = socket.AF_INET
+    dual_stack = False
+
+    def server_bind(self) -> None:
+        if (
+            self.address_family == socket.AF_INET6
+            and self.dual_stack
+            and hasattr(socket, "IPPROTO_IPV6")
+            and hasattr(socket, "IPV6_V6ONLY")
+        ):
+            try:
+                self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+            except OSError:
+                pass
+        super().server_bind()
+
+
+def _instantiate_http_server(
+    config: ServerListenConfig, port: int, handler_cls: type[BaseHTTPRequestHandler]
+) -> DualStackThreadingHTTPServer:
+    class ConfiguredDualStackThreadingHTTPServer(DualStackThreadingHTTPServer):
+        address_family = config.address_family
+        dual_stack = config.dual_stack
+
+    server = ConfiguredDualStackThreadingHTTPServer((config.bind_host, port), handler_cls)
+    server.listen_config = config
+    return server
+
+
+def create_http_server(
+    raw_host: Optional[str], port: int, handler_cls: type[BaseHTTPRequestHandler]
+) -> tuple[DualStackThreadingHTTPServer, ServerListenConfig]:
+    attempts = resolve_listen_attempts(raw_host)
+    last_error: Optional[OSError] = None
+
+    for attempt in attempts:
+        try:
+            return _instantiate_http_server(attempt, port, handler_cls), attempt
+        except OSError as exc:
+            last_error = exc
+            if attempt.explicit:
+                raise RuntimeError(
+                    f"Failed to bind web admin to {attempt.bind_host}:{port} ({attempt.mode})"
+                ) from exc
+
+    if last_error is not None:
+        raise RuntimeError(f"Failed to bind web admin to any listen address on port {port}") from last_error
+    raise RuntimeError("Failed to resolve a listen address for the web admin")
 
 
 def app_runtime_config() -> dict[str, str]:
@@ -2295,8 +2448,13 @@ def main() -> None:
         print("eSIM management disabled for physical SIM mode")
     threading.Thread(target=action_queue_worker, daemon=True).start()
     threading.Thread(target=keepalive_scheduler, daemon=True).start()
-    server = ThreadingHTTPServer((HOST, PORT), AppHandler)
-    print(f"4G WiFi admin listening on http://{HOST}:{PORT}")
+    server, listen_config = create_http_server(HOST, PORT, AppHandler)
+    print(
+        f"4G WiFi admin listening in {listen_config.mode} mode on "
+        f"{format_http_url(listen_config.bind_host, PORT)}"
+    )
+    for line in format_access_hints(listen_config, PORT):
+        print(line)
     server.serve_forever()
 
 

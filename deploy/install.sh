@@ -34,6 +34,8 @@ REPO_NAME="${REPO_NAME:-eSIM-SMS-Forwarder}"
 LPAC_MANIFEST_NAME="${LPAC_MANIFEST_NAME:-lpac-assets.json}"
 LPAC_RELEASE_BASE_URL="${LPAC_RELEASE_BASE_URL:-https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download}"
 LPAC_AUTO_DOWNLOAD="${LPAC_AUTO_DOWNLOAD:-1}"
+WEB_ADMIN_HOST_DEFAULT="${FOURG_WIFI_ADMIN_HOST:-auto}"
+WEB_ADMIN_PORT_DEFAULT="${FOURG_WIFI_ADMIN_PORT:-8080}"
 
 SIM_TYPE="esim"
 ARCH="unknown"
@@ -318,14 +320,49 @@ config_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
 }
 
+read_env_config_value() {
+    config_path=$1
+    config_key=$2
+
+    python3 - "$config_path" "$config_key" <<'PY'
+from pathlib import Path
+import sys
+
+config_path = Path(sys.argv[1])
+config_key = sys.argv[2]
+
+if not config_path.exists():
+    raise SystemExit(0)
+
+for raw_line in config_path.read_text(encoding="utf-8").splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+    key, value = line.split("=", 1)
+    if key.strip() == config_key:
+        print(value.strip().strip("\"'"))
+        raise SystemExit(0)
+PY
+}
+
 write_app_config() {
     esim_enabled=1
+    web_admin_host=$(read_env_config_value "${APP_CONFIG_DST}" "FOURG_WIFI_ADMIN_HOST")
+    web_admin_port=$(read_env_config_value "${APP_CONFIG_DST}" "FOURG_WIFI_ADMIN_PORT")
     if [ "${SIM_TYPE}" = "physical" ]; then
         esim_enabled=0
+    fi
+    if [ -z "${web_admin_host}" ]; then
+        web_admin_host="${WEB_ADMIN_HOST_DEFAULT}"
+    fi
+    if [ -z "${web_admin_port}" ]; then
+        web_admin_port="${WEB_ADMIN_PORT_DEFAULT}"
     fi
 
     merge_env_config_value "${APP_CONFIG_DST}" "SIM_TYPE" "${SIM_TYPE}"
     merge_env_config_value "${APP_CONFIG_DST}" "ESIM_MANAGEMENT_ENABLED" "${esim_enabled}"
+    merge_env_config_value "${APP_CONFIG_DST}" "FOURG_WIFI_ADMIN_HOST" "${web_admin_host}"
+    merge_env_config_value "${APP_CONFIG_DST}" "FOURG_WIFI_ADMIN_PORT" "${web_admin_port}"
     chmod 644 "${APP_CONFIG_DST}"
     log "已更新安装模式配置并保留现有业务设置: ${APP_CONFIG_DST}"
 }
@@ -341,21 +378,51 @@ service_status() {
 
 
 
-detect_access_url() {
-    if command -v hostname >/dev/null 2>&1; then
-        first_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
-        if [ -n "${first_ip}" ]; then
-            printf '%s' "http://${first_ip}:8080/"
-            return
-        fi
+detect_access_urls() {
+    web_admin_port=$(read_env_config_value "${APP_CONFIG_DST}" "FOURG_WIFI_ADMIN_PORT")
+    if [ -z "${web_admin_port}" ]; then
+        web_admin_port="${WEB_ADMIN_PORT_DEFAULT}"
     fi
-    printf '%s' "http://<device-ip>:8080/"
+
+    ipv4_url=""
+    ipv6_url=""
+    if command -v hostname >/dev/null 2>&1; then
+        for candidate in $(hostname -I 2>/dev/null); do
+            case "${candidate}" in
+                *:*)
+                    if [ -z "${ipv6_url}" ]; then
+                        ipv6_url="http://[${candidate}]:${web_admin_port}/"
+                    fi
+                    ;;
+                *)
+                    if [ -z "${ipv4_url}" ]; then
+                        ipv4_url="http://${candidate}:${web_admin_port}/"
+                    fi
+                    ;;
+            esac
+            if [ -n "${ipv4_url}" ] && [ -n "${ipv6_url}" ]; then
+                break
+            fi
+        done
+    fi
+
+    if [ -z "${ipv4_url}" ]; then
+        ipv4_url="http://<device-ipv4>:${web_admin_port}/"
+    fi
+
+    printf '%s\n' "管理页面:"
+    printf '%s\n' "  IPv4: ${ipv4_url}"
+    if [ -n "${ipv6_url}" ]; then
+        printf '%s\n' "  IPv6: ${ipv6_url}"
+    else
+        printf '%s\n' "  IPv6: http://[<device-ipv6>]:${web_admin_port}/"
+    fi
 }
 
 print_install_summary() {
     admin_state=$(service_status 4g-wifi-admin.service)
     sms_state=$(service_status sms-forwarder.service)
-    access_url=$(detect_access_url)
+    access_urls=$(detect_access_urls)
 
     if lpac_binary_usable; then
         lpac_state="已安装"
@@ -371,7 +438,7 @@ print_install_summary() {
 
     printf '\n'
     printf '%s\n' "========== 安装摘要 =========="
-    printf '%s\n' "管理页面: ${access_url}"
+    printf '%s\n' "${access_urls}"
     printf '%s\n' "4g-wifi-admin.service: ${admin_state}"
     printf '%s\n' "sms-forwarder.service: ${sms_state}"
     printf '%s\n' "安装模式: ${SIM_TYPE}"
@@ -737,7 +804,7 @@ main() {
 
     log "部署完成"
     log "项目目录: ${PROJECT_DIR}"
-    log "管理页面: $(detect_access_url)"
+    log "访问提示已生成，请查看安装摘要中的 IPv4 / IPv6 地址"
     print_install_summary
 }
 

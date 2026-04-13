@@ -1,7 +1,37 @@
-# eSIM SMS Forwarder
+<a href="https://github.com/3899/eSIM-SMS-Forwarder">
+  <img src="https://socialify.git.ci/3899/eSIM-SMS-Forwarder/image?description=1&descriptionEditable=%E9%80%82%E7%94%A8%E4%BA%8E%20eSIM%20%2F%20SMS%20%E7%9A%84%E5%BC%80%E6%BA%90%E7%9F%AD%E4%BF%A1%E6%8E%A5%E6%94%B6%E4%B8%8E%E8%BD%AC%E5%8F%91%E5%B7%A5%E5%85%B7%E3%80%82&font=Source%20Code%20Pro&logo=https%3A%2F%2Fgithub.com%2F3899%2FeSIM-SMS-Forwarder%2Fblob%2Fmain%2Ffrontend%2Fpublic%2Fapp-icon.png%3Fraw%3Dtrue&name=1&owner=1&pattern=Floating%20Cogs&theme=Auto" alt="eSIM-SMS-Forwarder" />
+</a>
 
-[![Build Deploy Package](https://github.com/cyDione/eSIM-SMS-Forwarder/actions/workflows/build-deploy-package.yml/badge.svg)](https://github.com/cyDione/eSIM-SMS-Forwarder/actions/workflows/build-deploy-package.yml)
-[![Latest Release](https://img.shields.io/github/v/release/cyDione/eSIM-SMS-Forwarder?display_name=tag)](https://github.com/cyDione/eSIM-SMS-Forwarder/releases/latest)
+<div align="center">
+  <br/>
+
+  <div>
+    <a href="./LICENSE">
+      <img
+        src="https://img.shields.io/github/license/3899/eSIM-SMS-Forwarder?style=flat-square"
+      />
+    </a >
+    <a href="https://github.com/3899/eSIM-SMS-Forwarder/releases">
+      <img
+        src="https://img.shields.io/github/v/release/3899/eSIM-SMS-Forwarder?style=flat-square"
+      />
+    </a >
+    <a href="https://github.com/3899/eSIM-SMS-Forwarder/releases">
+      <img
+        src="https://img.shields.io/github/downloads/3899/eSIM-SMS-Forwarder/total?style=flat-square"
+      />  
+    </a >
+  </div>
+
+  <br/>
+
+  <picture>
+    <img src="./static/Web_Console.png" width="100%" alt="Web_Console" />
+  </picture>
+  
+</div>
+
+# eSIM SMS Forwarder
 
 一个运行在 Debian 设备上的轻量服务，用来做 eSIM 管理、短信接收、Apprise 多渠道转发，以及浏览器里的可视化控制台。
 
@@ -126,6 +156,8 @@ curl -fsSL https://raw.githubusercontent.com/cyDione/eSIM-SMS-Forwarder/main/scr
 ```ini
 SIM_TYPE=physical
 ESIM_MANAGEMENT_ENABLED=0
+FOURG_WIFI_ADMIN_HOST=auto
+FOURG_WIFI_ADMIN_PORT=8080
 ```
 
 ### 3. 手动部署
@@ -176,11 +208,44 @@ journalctl -u sms-forwarder.service -f
 
 ### Web 页面
 
-默认监听端口：
+默认监听策略：
+
+- 默认使用自动双栈监听，优先尝试同时支持 IPv4 / IPv6
+- 若当前系统不支持 IPv6，则自动回退到 IPv4
+- 显式设置 `FOURG_WIFI_ADMIN_HOST=0.0.0.0` 时只监听 IPv4
+- 显式设置 `FOURG_WIFI_ADMIN_HOST=::` 时优先监听 IPv6 双栈
+
+默认访问格式：
 
 ```text
-http://<device-ip>:8080/
+IPv4: http://<device-ipv4>:8080/
+IPv6: http://[<device-ipv6>]:8080/
 ```
+
+如果域名的 `AAAA` 记录指向设备的 IPv6 地址，且对应端口已放通，也可以直接通过域名访问：
+
+```text
+http://panel.example.com:8080/
+```
+
+常用监听配置示例：
+
+```ini
+# 自动双栈，失败回退 IPv4（默认）
+FOURG_WIFI_ADMIN_HOST=auto
+FOURG_WIFI_ADMIN_PORT=8080
+
+# 只监听 IPv4
+FOURG_WIFI_ADMIN_HOST=0.0.0.0
+
+# 只监听本机 IPv6
+FOURG_WIFI_ADMIN_HOST=::1
+```
+
+说明：
+
+- 域名通过 `AAAA` 记录访问时，不需要写 IPv6 方括号
+- 如果要公网暴露，仍建议放在反向代理和 HTTPS 后面，本项目本次不内置 nginx/caddy
 
 页面内可完成：
 
@@ -213,11 +278,12 @@ npm run lint
 npm run build
 ```
 
-### Python 语法检查
+### Python 检查
 
 ```bash
 python -m py_compile deploy/web_admin/4g_wifi_admin.py
 python -m py_compile deploy/sms_forwarder/sms_forwarder.py
+python -m unittest discover -s tests -p "test_*.py"
 ```
 
 ## 目录结构

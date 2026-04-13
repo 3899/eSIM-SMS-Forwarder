@@ -56,6 +56,7 @@ jobs:
           python -m py_compile deploy/shared/notification_utils.py
           python -m py_compile deploy/web_admin/4g_wifi_admin.py
           python -m py_compile deploy/sms_forwarder/sms_forwarder.py
+          python -m unittest discover -s tests -p "test_*.py"
 
       - name: Sync built frontend into deploy assets
         run: |
