@@ -109,13 +109,13 @@
 默认安装模式为 eSIM 模式：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cyDione/eSIM-SMS-Forwarder/main/scripts/install_latest.sh | sudo sh
+curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/3899/eSIM-SMS-Forwarder/main/scripts/install_latest.sh | sudo sh
 ```
 
 如果设备使用普通 SIM，只需要短信转发，不需要 `lpac` 和 eSIM 管理：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cyDione/eSIM-SMS-Forwarder/main/scripts/install_latest.sh | sudo sh -s -- --sim-type physical
+curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/3899/eSIM-SMS-Forwarder/main/scripts/install_latest.sh | sudo sh -s -- --sim-type physical
 ```
 
 安装脚本会自动：
@@ -163,7 +163,7 @@ FOURG_WIFI_ADMIN_PORT=8080
 ### 3. 手动部署
 
 ```bash
-git clone https://github.com/cyDione/eSIM-SMS-Forwarder.git
+git clone https://github.com/3899/eSIM-SMS-Forwarder.git
 cd eSIM-SMS-Forwarder
 sudo sh ./deploy/install.sh
 ```

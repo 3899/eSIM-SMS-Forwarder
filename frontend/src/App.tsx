@@ -686,7 +686,7 @@ const NOTIFICATION_CHANNEL_ORDER: ChannelKind[] = [
 
 const ICON_VERSION = "20260312-2"
 const DEFAULT_BARK_ICON_URL =
-  `https://raw.githubusercontent.com/cyDione/eSIM-SMS-Forwarder/main/frontend/public/app-icon.png?v=${ICON_VERSION}`
+  `https://raw.githubusercontent.com/3899/eSIM-SMS-Forwarder/main/frontend/public/app-icon.png?v=${ICON_VERSION}`
 
 const NOTIFICATION_CHANNEL_ALIASES: Record<string, ChannelKind> = {
   bark: "bark",

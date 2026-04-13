@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Generate version
         id: version
@@ -28,14 +28,14 @@ jobs:
           echo "build_time=${build_time}" >> "${GITHUB_OUTPUT}"
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
@@ -81,7 +81,7 @@ jobs:
           find deploy/esim -maxdepth 1 -type f -name 'lpac-linux-*.zip' -exec cp {} dist/ \;
 
       - name: Upload deploy artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: eSIM-SMS-Forwarder-deploy-${{ steps.version.outputs.tag }}
           path: |
@@ -110,7 +110,7 @@ jobs:
             ## 安装命令
 
             ```bash
-            curl -fsSL https://raw.githubusercontent.com/cyDione/eSIM-SMS-Forwarder/main/scripts/install_latest.sh | sudo sh
+            curl -fsSL https://raw.githubusercontent.com/3899/eSIM-SMS-Forwarder/main/scripts/install_latest.sh | sudo sh
             ```
 
             ## 资产说明

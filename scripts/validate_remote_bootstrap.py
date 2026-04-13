@@ -10,7 +10,7 @@ import paramiko
 
 DEFAULT_SCRIPT_URL = (
     "https://raw.githubusercontent.com/"
-    "cyDione/eSIM-SMS-Forwarder/main/scripts/install_latest.sh"
+    "3899/eSIM-SMS-Forwarder/main/scripts/install_latest.sh"
 )
 
 

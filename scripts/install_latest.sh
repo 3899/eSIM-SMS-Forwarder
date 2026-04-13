@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-REPO_OWNER="${REPO_OWNER:-cyDione}"
+REPO_OWNER="${REPO_OWNER:-3899}"
 REPO_NAME="${REPO_NAME:-eSIM-SMS-Forwarder}"
 ASSET_NAME="${ASSET_NAME:-eSIM-SMS-Forwarder-deploy.zip}"
 

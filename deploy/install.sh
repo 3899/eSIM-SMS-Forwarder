@@ -29,7 +29,7 @@ LPAC_HOME_DST="/opt/lpac"
 RUNTIME_HOME_DST="/opt/esim-sms-forwarder"
 RUNTIME_VENV_DST="${RUNTIME_HOME_DST}/venv"
 
-REPO_OWNER="${REPO_OWNER:-cyDione}"
+REPO_OWNER="${REPO_OWNER:-3899}"
 REPO_NAME="${REPO_NAME:-eSIM-SMS-Forwarder}"
 LPAC_MANIFEST_NAME="${LPAC_MANIFEST_NAME:-lpac-assets.json}"
 LPAC_RELEASE_BASE_URL="${LPAC_RELEASE_BASE_URL:-https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/latest/download}"
