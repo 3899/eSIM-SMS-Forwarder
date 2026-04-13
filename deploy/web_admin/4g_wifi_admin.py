@@ -38,7 +38,7 @@ from notification_utils import (  # noqa: E402
     load_notification_targets,
     normalize_notification_target,
     save_notification_targets_in_config,
-    send_apprise_notification,
+    send_notification,
 )
 
 
@@ -1360,7 +1360,7 @@ def notify_keepalive_result(
     )
     try:
         ctx.log(f"准备发送保活结果通知：{'、'.join(labels)}")
-        delivered_labels = send_apprise_notification(targets, title, body)
+        delivered_labels = send_notification(targets, title, body)
         ctx.log(f"保活结果通知已发送到：{'、'.join(delivered_labels)}")
     except Exception as exc:
         ctx.log(f"保活结果通知发送失败：{exc}", "warning")
@@ -1710,7 +1710,7 @@ def save_notifications_config(ctx: ActionContext, payload: dict[str, Any]) -> No
         if not label and not url:
             continue
         if enabled and not url:
-            raise ValueError("启用中的通知渠道必须填写 Apprise URL")
+            raise ValueError("启用中的通知渠道必须填写通知地址")
         sanitized_targets.append(normalize_notification_target(raw_target))
 
     if not sanitized_targets:
@@ -1772,7 +1772,7 @@ def resend_last_sms(ctx: ActionContext) -> None:
 
     title, body = format_sms_notification(detail)
     ctx.log(f"准备推送到：{'、'.join(labels)}")
-    delivered_labels = send_apprise_notification(targets, title, body)
+    delivered_labels = send_notification(targets, title, body)
     ctx.log(f"最后一条短信已重新推送到：{'、'.join(delivered_labels)}")
 
 

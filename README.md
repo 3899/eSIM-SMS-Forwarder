@@ -38,7 +38,7 @@
 项目目标很直接：
 
 - 在支持 eUICC 的设备上切换内置 eSIM Profile
-- 接收短信并转发到 Apprise 多渠道
+- 接收短信并转发到 Apprise 与原生企业应用通道
 - 提供低负载、可实时反馈执行进度的 Web 管理页面
 - 兼容普通 SIM 场景，只启用短信转发，不安装 `lpac`
 
@@ -56,7 +56,7 @@
 ### 短信转发
 
 - 通过 `ModemManager` 读取短信
-- 自动转发新短信到 Apprise 渠道
+- 自动转发新短信到 Bark、Telegram、Email、PushPlus、Server酱、企业微信群机器人、飞书机器人、钉钉群机器人、Webhook Lite 以及企业应用类通道
 - 自动处理中文转义内容
 - 自动尝试解码 Base64 短信正文
 - 支持在页面里查看最近短信
@@ -188,11 +188,14 @@ sudo sh ./deploy/install.sh --sim-type physical
 
 ```ini
 MODEM_ID=any
-NOTIFICATION_TARGETS_JSON=[{"id":"bark-primary","label":"Bark","url":"barks://bark.example.com/device_key?group=sms&level=active","enabled":true}]
+NOTIFICATION_TARGETS_JSON=[{"id":"bark-primary","label":"Bark","url":"barks://bark.example.com/device_key?group=sms&level=active","enabled":true},{"id":"email-primary","label":"Email","url":"mailtos://user:password@smtp.example.com:465?from=sender%40example.com&to=receiver%40example.com","enabled":false}]
 FORWARD_SMS_STATES=received
 ```
 
-`NOTIFICATION_TARGETS_JSON` 使用 Apprise URL 格式，可以同时配置多个渠道。
+`NOTIFICATION_TARGETS_JSON` 以 URL 形式保存通知目标。
+
+- Apprise 通道示例：`barks://...`、`tgram://...`、`mailtos://...`、`pushplus://...`、`schan://...`
+- 原生通道示例：`webhooklite://config?...`、`wecomapp://config?...`、`feishuapp://config?...`、`dingtalkcorp://config?...`
 
 ### 服务管理
 

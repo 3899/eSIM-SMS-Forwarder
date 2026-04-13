@@ -22,7 +22,7 @@ from notification_utils import (  # noqa: E402
     format_beijing_timestamp,
     format_sms_notification,
     load_notification_targets,
-    send_apprise_notification,
+    send_notification,
 )
 
 
@@ -197,7 +197,7 @@ def main() -> int:
                     continue
 
                 title, body = format_sms_notification(detail)
-                labels = send_apprise_notification(targets, title, body)
+                labels = send_notification(targets, title, body)
                 LOG.info("notification delivered via %s", ",".join(labels))
 
             if changed:

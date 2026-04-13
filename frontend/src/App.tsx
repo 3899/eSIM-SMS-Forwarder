@@ -171,7 +171,23 @@ type NotificationTarget = {
   type: string
 }
 
-type ChannelKind = "bark" | "telegram" | "gotify" | "ntfy" | "discord" | "custom"
+type ChannelKind =
+  | "bark"
+  | "telegram"
+  | "gotify"
+  | "ntfy"
+  | "discord"
+  | "email"
+  | "pushplus"
+  | "serverchan"
+  | "wecom_bot"
+  | "feishu_bot"
+  | "dingtalk_bot"
+  | "webhook_lite"
+  | "wecom_app"
+  | "feishu_app"
+  | "dingtalk_corp"
+  | "custom"
 
 type NotificationChannelField = {
   key: string
@@ -442,6 +458,198 @@ const NOTIFICATION_CHANNEL_DEFINITIONS: Record<ChannelKind, NotificationChannelD
       webhook_token: "",
     }),
   },
+  email: {
+    type: "email",
+    label: "Email",
+    description: "通过 SMTP 发送通知邮件，填写发件账号和收件地址。",
+    fields: [
+      { key: "smtp_server", label: "SMTP 服务器", placeholder: "smtp.qq.com", required: true },
+      { key: "port", label: "端口", placeholder: "465", required: true },
+      {
+        key: "security",
+        label: "连接方式",
+        placeholder: "选择连接方式",
+        options: [
+          { label: "SSL/TLS", value: "ssl" },
+          { label: "明文/STARTTLS", value: "plain" },
+        ],
+      },
+      { key: "username", label: "账号", placeholder: "发件邮箱账号", required: true },
+      { key: "password", label: "密码/授权码", placeholder: "输入邮箱密码或授权码", required: true, inputType: "password" },
+      { key: "from_email", label: "发件地址", placeholder: "sender@example.com", required: true },
+      { key: "to_email", label: "收件地址", placeholder: "a@example.com,b@example.com", required: true },
+    ],
+    createValues: () => ({
+      smtp_server: "",
+      port: "465",
+      security: "ssl",
+      username: "",
+      password: "",
+      from_email: "",
+      to_email: "",
+    }),
+  },
+  pushplus: {
+    type: "pushplus",
+    label: "PushPlus",
+    description: "适合微信侧推送，填写 PushPlus Token。",
+    fields: [{ key: "token", label: "Token", placeholder: "输入 PushPlus Token", required: true, inputType: "password" }],
+    createValues: () => ({
+      token: "",
+    }),
+  },
+  serverchan: {
+    type: "serverchan",
+    label: "Server酱",
+    description: "填写 Server酱 Turbo 的 SendKey。",
+    fields: [{ key: "send_key", label: "SendKey", placeholder: "输入 Server酱 SendKey", required: true, inputType: "password" }],
+    createValues: () => ({
+      send_key: "",
+    }),
+  },
+  wecom_bot: {
+    type: "wecom_bot",
+    label: "企业微信群机器人",
+    description: "填写企业微信群机器人 Webhook 中的 key。",
+    fields: [{ key: "key", label: "机器人 Key", placeholder: "输入企业微信群机器人 key", required: true, inputType: "password" }],
+    createValues: () => ({
+      key: "",
+    }),
+  },
+  feishu_bot: {
+    type: "feishu_bot",
+    label: "飞书机器人",
+    description: "填写飞书自定义机器人的 Webhook Token。",
+    fields: [{ key: "token", label: "Webhook Token", placeholder: "输入飞书 Webhook Token", required: true, inputType: "password" }],
+    createValues: () => ({
+      token: "",
+    }),
+  },
+  dingtalk_bot: {
+    type: "dingtalk_bot",
+    label: "钉钉群机器人",
+    description: "填写钉钉自定义机器人的 Token，可选 Secret 与 @手机号列表。",
+    fields: [
+      { key: "api_key", label: "机器人 Token", placeholder: "输入 access_token", required: true, inputType: "password" },
+      { key: "secret", label: "加签 Secret", placeholder: "启用加签时填写", inputType: "password" },
+      { key: "at_mobiles", label: "@手机号", placeholder: "多个号码用逗号或分号分隔" },
+    ],
+    createValues: () => ({
+      api_key: "",
+      secret: "",
+      at_mobiles: "",
+    }),
+  },
+  webhook_lite: {
+    type: "webhook_lite",
+    label: "Webhook",
+    description: "Lite 版结构化 Webhook，支持 GET / POST + form/json/text。",
+    fields: [
+      { key: "target_url", label: "目标地址", placeholder: "https://example.com/webhook", required: true, inputType: "url" },
+      {
+        key: "method",
+        label: "请求方式",
+        placeholder: "选择请求方式",
+        options: [
+          { label: "POST", value: "POST" },
+          { label: "GET", value: "GET" },
+        ],
+      },
+      {
+        key: "format",
+        label: "负载格式",
+        placeholder: "选择负载格式",
+        options: [
+          { label: "JSON", value: "json" },
+          { label: "Form", value: "form" },
+          { label: "Text", value: "text" },
+        ],
+      },
+      { key: "title_key", label: "标题字段", placeholder: "title", required: true },
+      { key: "body_key", label: "内容字段", placeholder: "body", required: true },
+    ],
+    createValues: () => ({
+      target_url: "",
+      method: "POST",
+      format: "json",
+      title_key: "title",
+      body_key: "body",
+    }),
+  },
+  wecom_app: {
+    type: "wecom_app",
+    label: "企业微信应用",
+    description: "通过企业微信应用消息发送通知，支持成员/部门/标签目标。",
+    fields: [
+      { key: "corp_id", label: "企业 ID", placeholder: "输入企业 ID", required: true },
+      { key: "agent_id", label: "Agent ID", placeholder: "输入 Agent ID", required: true },
+      { key: "secret", label: "Secret", placeholder: "输入应用 Secret", required: true, inputType: "password" },
+      { key: "to_user", label: "成员", placeholder: "@all 或成员 ID" },
+      { key: "to_party", label: "部门", placeholder: "多个部门用 | 分隔" },
+      { key: "to_tag", label: "标签", placeholder: "多个标签用 | 分隔" },
+    ],
+    createValues: () => ({
+      corp_id: "",
+      agent_id: "",
+      secret: "",
+      to_user: "@all",
+      to_party: "",
+      to_tag: "",
+    }),
+  },
+  feishu_app: {
+    type: "feishu_app",
+    label: "飞书企业应用",
+    description: "通过飞书企业应用发送消息，填写应用凭证和接收目标。",
+    fields: [
+      { key: "app_id", label: "App ID", placeholder: "输入飞书 App ID", required: true },
+      { key: "app_secret", label: "App Secret", placeholder: "输入飞书 App Secret", required: true, inputType: "password" },
+      {
+        key: "receive_id_type",
+        label: "接收者 ID 类型",
+        placeholder: "选择接收者 ID 类型",
+        options: [
+          { label: "user_id", value: "user_id" },
+          { label: "open_id", value: "open_id" },
+          { label: "union_id", value: "union_id" },
+          { label: "chat_id", value: "chat_id" },
+          { label: "email", value: "email" },
+        ],
+      },
+      { key: "receive_id", label: "接收者 ID", placeholder: "输入接收者 ID", required: true },
+    ],
+    createValues: () => ({
+      app_id: "",
+      app_secret: "",
+      receive_id_type: "user_id",
+      receive_id: "",
+    }),
+  },
+  dingtalk_corp: {
+    type: "dingtalk_corp",
+    label: "钉钉企业内机器人",
+    description: "填写企业内机器人 Webhook 地址，可选 Secret 与 @设置。",
+    fields: [
+      { key: "webhook_url", label: "Webhook 地址", placeholder: "https://oapi.dingtalk.com/robot/send?access_token=...", required: true, inputType: "url" },
+      { key: "secret", label: "Secret", placeholder: "启用签名时填写", inputType: "password" },
+      { key: "at_mobiles", label: "@手机号", placeholder: "多个号码用逗号或分号分隔" },
+      {
+        key: "at_all",
+        label: "@所有人",
+        placeholder: "选择是否 @所有人",
+        options: [
+          { label: "否", value: "0" },
+          { label: "是", value: "1" },
+        ],
+      },
+    ],
+    createValues: () => ({
+      webhook_url: "",
+      secret: "",
+      at_mobiles: "",
+      at_all: "0",
+    }),
+  },
   custom: {
     type: "custom",
     label: "自定义",
@@ -457,7 +665,24 @@ const NOTIFICATION_CHANNEL_DEFINITIONS: Record<ChannelKind, NotificationChannelD
   },
 }
 
-const NOTIFICATION_CHANNEL_ORDER: ChannelKind[] = ["bark", "telegram", "gotify", "ntfy", "discord", "custom"]
+const NOTIFICATION_CHANNEL_ORDER: ChannelKind[] = [
+  "bark",
+  "telegram",
+  "gotify",
+  "ntfy",
+  "discord",
+  "email",
+  "pushplus",
+  "serverchan",
+  "wecom_bot",
+  "feishu_bot",
+  "dingtalk_bot",
+  "webhook_lite",
+  "wecom_app",
+  "feishu_app",
+  "dingtalk_corp",
+  "custom",
+]
 
 const ICON_VERSION = "20260312-2"
 const DEFAULT_BARK_ICON_URL =
@@ -473,12 +698,40 @@ const NOTIFICATION_CHANNEL_ALIASES: Record<string, ChannelKind> = {
   ntfy: "ntfy",
   ntfys: "ntfy",
   discord: "discord",
+  email: "email",
+  mailto: "email",
+  mailtos: "email",
+  pushplus: "pushplus",
+  serverchan: "serverchan",
+  schan: "serverchan",
+  wecom_bot: "wecom_bot",
+  wecombot: "wecom_bot",
+  feishu_bot: "feishu_bot",
+  feishu: "feishu_bot",
+  lark: "feishu_bot",
+  dingtalk_bot: "dingtalk_bot",
+  dingtalk: "dingtalk_bot",
+  webhook_lite: "webhook_lite",
+  webhooklite: "webhook_lite",
+  wecom_app: "wecom_app",
+  wecomapp: "wecom_app",
+  feishu_app: "feishu_app",
+  feishuapp: "feishu_app",
+  dingtalk_corp: "dingtalk_corp",
+  dingtalkcorp: "dingtalk_corp",
   custom: "custom",
 }
 
 function inferNotificationType(url: string, fallback = "apprise") {
   const match = url.trim().match(/^([a-z0-9+.-]+):\/\//i)
   return match?.[1]?.toLowerCase() || fallback
+}
+
+function splitNotificationList(rawValue: string) {
+  return rawValue
+    .split(/[;,]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
 }
 
 function normalizeServerUrl(value: string) {
@@ -496,6 +749,15 @@ function convertCustomSchemeUrl(url: string, secureScheme: string, insecureSchem
   if (url.startsWith(`${secureScheme}://`)) return new URL(url.replace(`${secureScheme}://`, "https://"))
   if (url.startsWith(`${insecureScheme}://`)) return new URL(url.replace(`${insecureScheme}://`, "http://"))
   return null
+}
+
+function parseNotificationConfigUrl(url: string, scheme: string) {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol.toLowerCase() === `${scheme.toLowerCase()}:` ? parsed : null
+  } catch {
+    return null
+  }
 }
 
 function notificationChannelType(rawType: string, url: string): ChannelKind {
@@ -573,6 +835,92 @@ function buildNotificationUrl(target: NotificationFormTarget) {
       const webhookId = values.webhook_id?.trim() ?? ""
       const webhookToken = values.webhook_token?.trim() ?? ""
       return webhookId && webhookToken ? `discord://${webhookId}/${webhookToken}` : ""
+    }
+    case "email": {
+      const smtpServer = values.smtp_server?.trim() ?? ""
+      const port = values.port?.trim() ?? ""
+      const username = values.username?.trim() ?? ""
+      const password = values.password?.trim() ?? ""
+      const fromEmail = values.from_email?.trim() ?? ""
+      const recipients = splitNotificationList(values.to_email ?? "")
+      if (!smtpServer || !username || !password || !fromEmail || !recipients.length) return ""
+      const scheme = values.security === "plain" ? "mailto" : "mailtos"
+      const query = new URLSearchParams()
+      query.set("from", fromEmail)
+      for (const recipient of recipients) query.append("to", recipient)
+      return `${scheme}://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${smtpServer}${port ? `:${port}` : ""}?${query.toString()}`
+    }
+    case "pushplus": {
+      const token = values.token?.trim() ?? ""
+      return token ? `pushplus://${encodeURIComponent(token)}` : ""
+    }
+    case "serverchan": {
+      const sendKey = values.send_key?.trim() ?? ""
+      return sendKey ? `schan://${encodeURIComponent(sendKey)}` : ""
+    }
+    case "wecom_bot": {
+      const key = values.key?.trim() ?? ""
+      return key ? `wecombot://${encodeURIComponent(key)}` : ""
+    }
+    case "feishu_bot": {
+      const token = values.token?.trim() ?? ""
+      return token ? `feishu://${encodeURIComponent(token)}` : ""
+    }
+    case "dingtalk_bot": {
+      const apiKey = values.api_key?.trim() ?? ""
+      if (!apiKey) return ""
+      const secret = values.secret?.trim() ?? ""
+      const atMobiles = splitNotificationList(values.at_mobiles ?? "")
+      const authPrefix = secret ? `${encodeURIComponent(secret)}@` : ""
+      const phoneSuffix = atMobiles.length ? `/${atMobiles.map((item) => encodeURIComponent(item)).join("/")}` : ""
+      return `dingtalk://${authPrefix}${encodeURIComponent(apiKey)}${phoneSuffix}`
+    }
+    case "webhook_lite": {
+      const endpoint = normalizeServerUrl(values.target_url ?? "")
+      if (!endpoint) return ""
+      const query = new URLSearchParams()
+      query.set("target", endpoint.toString())
+      query.set("method", values.method?.trim().toUpperCase() || "POST")
+      query.set("format", values.format?.trim().toLowerCase() || "json")
+      query.set("title_key", values.title_key?.trim() || "title")
+      query.set("body_key", values.body_key?.trim() || "body")
+      return `webhooklite://config?${query.toString()}`
+    }
+    case "wecom_app": {
+      const corpId = values.corp_id?.trim() ?? ""
+      const agentId = values.agent_id?.trim() ?? ""
+      const secret = values.secret?.trim() ?? ""
+      if (!corpId || !agentId || !secret) return ""
+      const query = new URLSearchParams()
+      query.set("corp_id", corpId)
+      query.set("agent_id", agentId)
+      query.set("secret", secret)
+      if (values.to_user?.trim()) query.set("to_user", values.to_user.trim())
+      if (values.to_party?.trim()) query.set("to_party", values.to_party.trim())
+      if (values.to_tag?.trim()) query.set("to_tag", values.to_tag.trim())
+      return `wecomapp://config?${query.toString()}`
+    }
+    case "feishu_app": {
+      const appId = values.app_id?.trim() ?? ""
+      const appSecret = values.app_secret?.trim() ?? ""
+      const receiveId = values.receive_id?.trim() ?? ""
+      if (!appId || !appSecret || !receiveId) return ""
+      const query = new URLSearchParams()
+      query.set("app_id", appId)
+      query.set("app_secret", appSecret)
+      query.set("receive_id_type", values.receive_id_type?.trim() || "user_id")
+      query.set("receive_id", receiveId)
+      return `feishuapp://config?${query.toString()}`
+    }
+    case "dingtalk_corp": {
+      const webhook = normalizeServerUrl(values.webhook_url ?? "")
+      if (!webhook) return ""
+      const query = new URLSearchParams()
+      query.set("url", webhook.toString())
+      if (values.secret?.trim()) query.set("secret", values.secret.trim())
+      if (values.at_mobiles?.trim()) query.set("at_mobiles", values.at_mobiles.trim())
+      query.set("at_all", values.at_all?.trim() || "0")
+      return `dingtalkcorp://config?${query.toString()}`
     }
     case "custom":
       return values.url?.trim() ?? ""
@@ -671,6 +1019,144 @@ function parseNotificationTarget(target: NotificationTarget): NotificationFormTa
       values: {
         webhook_id: webhookIndex >= 0 ? decodeURIComponent(segments[webhookIndex + 1] ?? "") : "",
         webhook_token: webhookIndex >= 0 ? decodeURIComponent(segments[webhookIndex + 2] ?? "") : "",
+      },
+    })
+  }
+
+  if (type === "email") {
+    const parsed = parseNotificationConfigUrl(url, "mailtos") ?? parseNotificationConfigUrl(url, "mailto")
+    if (!parsed) return createNotificationTarget("email", { id, enabled })
+    return createNotificationTarget("email", {
+      id,
+      enabled,
+      values: {
+        smtp_server: parsed.hostname,
+        port: parsed.port || "",
+        security: parsed.protocol.toLowerCase() === "mailtos:" ? "ssl" : "plain",
+        username: decodeURIComponent(parsed.username || ""),
+        password: decodeURIComponent(parsed.password || ""),
+        from_email: parsed.searchParams.get("from") ?? "",
+        to_email: parsed.searchParams.getAll("to").join(","),
+      },
+    })
+  }
+
+  if (type === "pushplus") {
+    const match = url.trim().match(/^pushplus:\/\/([^/?#]+)/i)
+    return createNotificationTarget("pushplus", {
+      id,
+      enabled,
+      values: {
+        token: decodeURIComponent(match?.[1] ?? ""),
+      },
+    })
+  }
+
+  if (type === "serverchan") {
+    const match = url.trim().match(/^schan:\/\/([^/?#]+)/i)
+    return createNotificationTarget("serverchan", {
+      id,
+      enabled,
+      values: {
+        send_key: decodeURIComponent(match?.[1] ?? ""),
+      },
+    })
+  }
+
+  if (type === "wecom_bot") {
+    const match = url.trim().match(/^wecombot:\/\/([^/?#]+)/i)
+    return createNotificationTarget("wecom_bot", {
+      id,
+      enabled,
+      values: {
+        key: decodeURIComponent(match?.[1] ?? ""),
+      },
+    })
+  }
+
+  if (type === "feishu_bot") {
+    const match = url.trim().match(/^(?:feishu|lark):\/\/([^/?#]+)/i)
+    return createNotificationTarget("feishu_bot", {
+      id,
+      enabled,
+      values: {
+        token: decodeURIComponent(match?.[1] ?? ""),
+      },
+    })
+  }
+
+  if (type === "dingtalk_bot") {
+    const match = url.trim().match(/^dingtalk:\/\/(?:(.+?)@)?([^/?#]+)(?:\/([^?#]+))?/i)
+    return createNotificationTarget("dingtalk_bot", {
+      id,
+      enabled,
+      values: {
+        secret: decodeURIComponent(match?.[1] ?? ""),
+        api_key: decodeURIComponent(match?.[2] ?? ""),
+        at_mobiles: (match?.[3] ?? "")
+          .split("/")
+          .map((item) => decodeURIComponent(item))
+          .filter(Boolean)
+          .join(","),
+      },
+    })
+  }
+
+  if (type === "webhook_lite") {
+    const parsed = parseNotificationConfigUrl(url, "webhooklite")
+    return createNotificationTarget("webhook_lite", {
+      id,
+      enabled,
+      values: {
+        target_url: parsed?.searchParams.get("target") ?? "",
+        method: parsed?.searchParams.get("method") ?? "POST",
+        format: parsed?.searchParams.get("format") ?? "json",
+        title_key: parsed?.searchParams.get("title_key") ?? "title",
+        body_key: parsed?.searchParams.get("body_key") ?? "body",
+      },
+    })
+  }
+
+  if (type === "wecom_app") {
+    const parsed = parseNotificationConfigUrl(url, "wecomapp")
+    return createNotificationTarget("wecom_app", {
+      id,
+      enabled,
+      values: {
+        corp_id: parsed?.searchParams.get("corp_id") ?? "",
+        agent_id: parsed?.searchParams.get("agent_id") ?? "",
+        secret: parsed?.searchParams.get("secret") ?? "",
+        to_user: parsed?.searchParams.get("to_user") ?? "@all",
+        to_party: parsed?.searchParams.get("to_party") ?? "",
+        to_tag: parsed?.searchParams.get("to_tag") ?? "",
+      },
+    })
+  }
+
+  if (type === "feishu_app") {
+    const parsed = parseNotificationConfigUrl(url, "feishuapp")
+    return createNotificationTarget("feishu_app", {
+      id,
+      enabled,
+      values: {
+        app_id: parsed?.searchParams.get("app_id") ?? "",
+        app_secret: parsed?.searchParams.get("app_secret") ?? "",
+        receive_id_type: parsed?.searchParams.get("receive_id_type") ?? "user_id",
+        receive_id: parsed?.searchParams.get("receive_id") ?? "",
+      },
+    })
+  }
+
+  if (type === "dingtalk_corp") {
+    const parsed = parseNotificationConfigUrl(url, "dingtalkcorp")
+    return createNotificationTarget("dingtalk_corp", {
+      id,
+      enabled,
+      values: {
+        webhook_url: parsed?.searchParams.get("url") ?? "",
+        secret: parsed?.searchParams.get("secret") ?? "",
+        at_mobiles: parsed?.searchParams.get("at_mobiles") ?? "",
+        at_all: parsed?.searchParams.get("at_all") ?? "0",
       },
     })
   }
